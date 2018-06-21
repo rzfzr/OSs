@@ -1,0 +1,6 @@
+#!/bin/sh
+
+basic_tools="htop ifconfig"
+
+aptitude update
+aptitude install -y $basic_tools
