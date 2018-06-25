@@ -14,3 +14,9 @@ HD4000
 120gb SSD  
 1tb   HDD  
 ~~r9 290~~ (dead eGPU adaptor) 
+
+
+## Inspiration
+
+https://www.reddit.com/r/linuxmasterrace/   
+https://www.reddit.com/r/DistroHopping/

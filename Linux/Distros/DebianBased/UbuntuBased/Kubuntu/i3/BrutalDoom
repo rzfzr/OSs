@@ -1,0 +1,22 @@
+[Desktop Entry]
+Categories=Game;
+Comment[en_US]=
+Comment=
+Encoding=UTF-8
+Exec=/home/rzfzr/.bin/brutal_doom.sh
+GenericName[en_US]=Brutal Doom
+GenericName=Brutal Doom
+Icon=/home/rzfzr/Pictures/icons/Doom-Brutal-icon.png
+MimeType=
+Name[en_US]=Brutal Doom
+Name=Brutal Doom
+Path=
+StartupNotify=true
+Terminal=true
+TerminalOptions=
+Type=Application
+Version=1.0
+X-DBUS-ServiceName=
+X-DBUS-StartupType=
+X-KDE-SubstituteUID=false
+X-KDE-Username=

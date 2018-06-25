@@ -1,0 +1,102 @@
+#!/bin/bash
+
+# This script dynamically controls fan speed on some ThinkPad models
+# according to user-defined temperature thresholds.  It implements its
+# own decision algorithm, overriding the ThinkPad embedded
+# controller. It also implements a workaround for the fan noise pulse
+# experienced every few seconds on some ThinkPads.
+#
+# The script requires the ibm_acpi patch at 
+# http://thinkwiki.org/wiki/Patch_for_controlling_fan_speed
+#
+# WARNING: This script relies on undocumented hardware features and
+# overrides nominal hardware behavior. It may thus cause arbitrary
+# damage to your laptop or data. Watch your temperatures!
+#
+# This file is placed in the public domain and may be freely distributed.
+
+LEVELS=(    0      2      4      7)  # Fan speed levels
+UP_TEMPS=(      52     60     68  )  # Speed increase trip points
+DOWN_TEMPS=(  48     56     64    )  # Speed decrease trip points
+
+ANTIPULSE=( 0      1      0      0)  # Prevent fan pulsing noise at this level
+                                     #   (this also prevents fan speed updates)
+
+IBM_ACPI=/proc/acpi/ibm
+FAN=$IBM_ACPI/fan
+INTERVAL=3
+VERBOSE=true
+DRY_RUN=false
+
+[[ "$1" == "-t" ]] && { DRY_RUN=true; echo "$0: Dry run, will not change fan state."; }
+
+# Enable the fan in default mode if anything goes wrong:
+set -e -E -u
+$DRY_RUN || trap "echo enable > $FAN; exit 0" EXIT HUP INT ABRT QUIT SEGV TERM
+
+
+thermometer() { # output list of temperatures
+    read X Y < $IBM_ACPI/thermal
+    [[ "$X" == "temperatures:" ]] || { 
+	echo "$0: Bad temperatures: $X $Y" >&2 
+	exit 1
+    }
+    echo "$Y"; 
+}
+
+speedometer() { # output fan speed
+    cat $FAN | sed '/^speed/!d; s/speed:[ \t]*//'
+}
+
+IDX=0
+MAX_IDX=$(( ${#LEVELS[@]} - 1 ))
+SETTLE=0
+
+while true; do
+    TEMPS=`thermometer`
+    $VERBOSE && SPEED=`speedometer`
+
+    # Calculate new level
+    NEWIDX=$IDX
+    DOWN=$(( IDX > 0 ))
+    for TEMP in $TEMPS; do
+        # Increase speed as much as needed
+        while [[ $NEWIDX -lt $MAX_IDX ]] && 
+              [[ $TEMP -ge ${UP_TEMPS[$NEWIDX]} ]]; do
+            (( NEWIDX ++ ))
+            DOWN=0
+        done
+        # Allow decrease (by one index)?
+        if [[ $DOWN == 1 ]] && 
+           [[ $TEMP -gt ${DOWN_TEMPS[$(( IDX - 1 ))]} ]]; then
+            DOWN=0
+        fi
+    done
+    if [[ $DOWN == 1 ]]; then
+        NEWIDX=$(( IDX - 1 ))
+    fi
+
+    # Transition
+    OLDLEVEL=${LEVELS[$IDX]}
+    NEWLEVEL=${LEVELS[$NEWIDX]}
+    $VERBOSE && echo "tpfan: Temps: $TEMPS   Fan: $SPEED   Level: $OLDLEVEL->$NEWLEVEL"
+    $DRY_RUN || echo level $NEWLEVEL > $FAN
+
+    sleep $INTERVAL
+
+    # If needed, apply anti-pulsing hack after a settle-down period:
+    if [[ ${ANTIPULSE[${NEWIDX}]} == 1 ]]; then
+	if [[ $NEWLEVEL == $OLDLEVEL ]]; then
+	    if [[ $SETTLE -ge 0 ]]; then
+		(( SETTLE -= INTERVAL ))
+	    else
+		$DRY_RUN || echo level disengaged >> $FAN
+		sleep 0.5
+	    fi
+	else
+	    SETTLE=6
+	fi
+    fi
+
+    IDX=$NEWIDX
+done
