@@ -1,0 +1,13 @@
+#!/bin/bash
+
+isConky=$(pgrep conky -c)
+
+if [ $isConky -gt 0 ] ; then 
+    pkill conky |
+    xsetroot |
+    echo "Normal" ;
+else 
+    conky -c ~/.i3/conky/conky_green | 
+    feh --bg-scale /home/rzfzr/Pictures/wallpapers/pentaredpost.jpg | 
+    echo "TURBO" ;
+fi
