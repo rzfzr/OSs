@@ -5,6 +5,9 @@ Journey into experimenting different OSs on my old thinkpad, documenting my find
 
 
 
+https://www.youtube.com/watch?v=9KAp_zWeI34
+
+
 
 ## Specs
 ### T430  
